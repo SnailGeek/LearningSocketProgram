@@ -30,6 +30,10 @@ int main(void)
 //	servaddr.sin_addr.s_addr = htonol(INADDR_ANY);
 //    servaddr.sin_addr.s_addr = inet_addr("127, 0, 0, 1");
 //    inet_aton("127.0.0.1", &servaddr.sin_addr);
+	int on = 1;
+	if(setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))< 0)
+		        ERR_EXIT("setxockopt");
+
     if(bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr))<0)
         ERR_EXIT("bind");
     if(listen(listenfd, SOMAXCONN) < 0)

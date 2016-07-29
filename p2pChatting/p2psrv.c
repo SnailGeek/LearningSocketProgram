@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -14,7 +15,11 @@ do\
 	perror(m);\
 	exit(EXIT_FAILURE);\
 }while(0)
-
+void handler(int sig)
+{
+	printf("recv a sig = %d\n", sig);
+	exit(EXIT_SUCCESS);
+}
 int main(void)
 {
 	int listenfd;
@@ -55,11 +60,13 @@ int main(void)
 
 	if(pid == 0)
 	{
+		signal(SIGUSR1, handler);
 		char sendbuf[1024] = {0};
 		while(fgets(sendbuf, sizeof(sendbuf), stdin)!= NULL){
 			write(conn, sendbuf, strlen(sendbuf));
 			memset(sendbuf, 0, sizeof(sendbuf));
 		}
+		printf("child close");
 		exit(EXIT_SUCCESS);
 	}
 	else
@@ -71,10 +78,16 @@ int main(void)
 			if(ret == -1)
 			  ERR_EXIT("read");
 			else if(ret == 0)
-			  printf("peer_close\n");
+			{
+				printf("peer_close\n");
+				break;
+			}
 	        fputs(recvbuf, stdout);
 		}	
+		printf("parent close");
+		kill(pid, SIGUSR1);
+		exit(EXIT_SUCCESS);
 	}
-	exit(EXIT_SUCCESS);
+
     return 0;
 }

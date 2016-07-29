@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/unistd.h>
 #include <stdlib.h>
@@ -15,6 +16,12 @@ do\
 	exit(EXIT_FAILURE);\
 }while(0)
 
+void handler(int sig)
+{
+	printf("recv a sig = %d\n", sig);
+	exit(EXIT_SUCCESS);
+
+}
 int main()
 {
 	int sock;
@@ -29,18 +36,37 @@ int main()
     
     if( connect(sock, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
         ERR_EXIT("connect");
-   
-    char sendbuf[1024] = {0};
-    char recvbuf[1024] = {0};
-   
-    while(fgets(sendbuf, sizeof(sendbuf), stdin) != NULL){
-        write(sock, sendbuf, strlen(sendbuf));
-        read(sock, recvbuf, sizeof(recvbuf));
-        fputs(recvbuf, stdout);
-        memset(sendbuf,0, sizeof(sendbuf));
-        memset(recvbuf,0,sizeof(recvbuf));
-    }
-    close(sock);
+	pid_t pid;
+	pid = fork();
+	if(pid == -1)
+	  ERR_EXIT("fork");
 
+	if(pid == 0)
+	{
+		char recvbuf[1024];
+		while(1){
+			memset(recvbuf, 0, sizeof(recvbuf));
+			int ret = read(sock, recvbuf, sizeof(recvbuf));
+			if(ret == -1)
+			  ERR_EXIT("read");
+			else if(ret == 0){
+				printf("peer close\n");
+				break;
+			}
+			fputs(recvbuf, stdout);
+		}
+		close(sock);
+		kill(getppid(), SIGUSR1);
+	}
+	else
+	{
+		signal(SIGUSR1, handler);
+		char sendbuf[1024] = {0};
+		while(fgets(sendbuf, sizeof(sendbuf), stdin) != NULL){
+			write(sock, sendbuf, strlen(sendbuf));
+			memset(sendbuf,0, sizeof(sendbuf));
+		}
+		close(sock);
+    }
     return 0;
 }

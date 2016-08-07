@@ -1,7 +1,7 @@
 .PHONY:clean all
 cc=gcc
 CFLAGS=-Wall -g
-BIN=socketpair sendMsg
+BIN=msg_get
 all:$(BIN)
 %.o:%.c
 	$(cc) $(CFLAGS) -c $< -o $@
